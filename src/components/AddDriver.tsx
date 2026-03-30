@@ -3,13 +3,12 @@ import axios from 'axios';
 import { Driver } from '../types';
 
 interface AddDriverProps {
-  onDriverAdded: () => void; // Fonction callback pour rafraîchir la liste des chauffeurs
+  onDriverAdded: () => void;
 }
 
 const AddDriver: React.FC<AddDriverProps> = ({ onDriverAdded }) => {
-  // Initialisation de l'état avec tous les champs requis, y compris _id
-  const [Driver, setDriver] = useState<Driver>({
-    _id: '', 
+  const [driver, setDriver] = useState<Driver>({
+    _id: '',
     nom: '',
     prenom: '',
     email: '',
@@ -17,8 +16,8 @@ const AddDriver: React.FC<AddDriverProps> = ({ onDriverAdded }) => {
     vehicule: '',
     disponible: false,
   });
+  const [error, setError] = useState('');
 
-  // Gestion de la modification des champs du formulaire
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setDriver(prevState => ({
@@ -27,99 +26,52 @@ const AddDriver: React.FC<AddDriverProps> = ({ onDriverAdded }) => {
     }));
   };
 
-  // Fonction pour ajouter un nouveau chauffeur
   const addDriver = () => {
-    if (!Driver.nom || !Driver.prenom || !Driver.email || !Driver.telephone || !Driver.vehicule) {
-      alert('Tous les champs sont requis.');
+    if (!driver.nom || !driver.prenom || !driver.email || !driver.telephone || !driver.vehicule) {
+      setError('Tous les champs sont requis.');
       return;
     }
-
+    setError('');
     axios
       .post('http://localhost:3000/chauffeurs', {
-        nom: Driver.nom,
-        prenom: Driver.prenom,
-        email: Driver.email,
-        telephone: Driver.telephone,
-        vehicule: Driver.vehicule,
-        disponible: Driver.disponible,
+        nom: driver.nom,
+        prenom: driver.prenom,
+        email: driver.email,
+        telephone: driver.telephone,
+        vehicule: driver.vehicule,
+        disponible: driver.disponible,
       })
-      .then(response => {
-        console.log('Chauffeur ajouté :', response.data);
-        setDriver({
-          _id: '', 
-          nom: '',
-          prenom: '',
-          email: '',
-          telephone: '',
-          vehicule: '',
-          disponible: false,
-        });
+      .then(() => {
+        setDriver({ _id: '', nom: '', prenom: '', email: '', telephone: '', vehicule: '', disponible: false });
         onDriverAdded();
       })
-      .catch(error => console.error('Erreur lors de l\'ajout du chauffeur :', error));
+      .catch(() => setError('Erreur lors de l\'ajout.'));
   };
 
+  const inputClass = "px-3 py-2.5 bg-dark-700 border border-dark-500/50 rounded-md text-white placeholder-slate-500 focus:border-gold-500 focus:ring-1 focus:ring-gold-500/30 transition text-sm";
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="flex flex-col gap-6 p-8 bg-white rounded-lg shadow-lg w-full max-w-xl">
-        <h4 className="text-xl font-bold text-gray-700 text-center">Ajouter un nouveau chauffeur</h4>
-        <input
-          type="text"
-          name="nom"
-          value={Driver.nom}
-          onChange={handleInputChange}
-          placeholder="Nom"
-          className="p-3 border border-gray-300 rounded-md text-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <input
-          type="text"
-          name="prenom"
-          value={Driver.prenom}
-          onChange={handleInputChange}
-          placeholder="Prénom"
-          className="p-3 border border-gray-300 rounded-md text-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <input
-          type="email"
-          name="email"
-          value={Driver.email}
-          onChange={handleInputChange}
-          placeholder="Email"
-          className="p-3 border border-gray-300 rounded-md text-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <input
-          type="text"
-          name="telephone"
-          value={Driver.telephone}
-          onChange={handleInputChange}
-          placeholder="Téléphone"
-          className="p-3 border border-gray-300 rounded-md text-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <input
-          type="text"
-          name="vehicule"
-          value={Driver.vehicule}
-          onChange={handleInputChange}
-          placeholder="Véhicule"
-          className="p-3 border border-gray-300 rounded-md text-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <label className="flex items-center gap-3 text-gray-600 text-lg">
-          Disponible :
-          <input
-            type="checkbox"
-            name="disponible"
-            checked={Driver.disponible}
-            onChange={handleInputChange}
-            className="w-6 h-6 text-blue-600 border-gray-300 rounded focus:ring-blue-400"
-          />
+    <div className="bg-dark-700 rounded-lg border border-dark-500/30 p-5">
+      <h3 className="text-sm font-semibold text-white mb-4">Ajouter un chauffeur</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <input type="text" name="nom" value={driver.nom} onChange={handleInputChange} placeholder="Nom" className={inputClass} />
+        <input type="text" name="prenom" value={driver.prenom} onChange={handleInputChange} placeholder="Prénom" className={inputClass} />
+        <input type="email" name="email" value={driver.email} onChange={handleInputChange} placeholder="Email" className={inputClass} />
+        <input type="text" name="telephone" value={driver.telephone} onChange={handleInputChange} placeholder="Téléphone" className={inputClass} />
+        <input type="text" name="vehicule" value={driver.vehicule} onChange={handleInputChange} placeholder="Véhicule" className={inputClass} />
+        <label className="flex items-center gap-2.5 text-slate-400 text-sm px-3 py-2.5">
+          <input type="checkbox" name="disponible" checked={driver.disponible} onChange={handleInputChange}
+            className="w-4 h-4 rounded accent-gold-500" />
+          Disponible
         </label>
-        <button
-          className="bg-green-500 text-white py-3 px-6 text-lg font-semibold rounded-md cursor-pointer transition-all duration-200 ease-in-out hover:bg-green-600 active:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-400"
-          onClick={addDriver}
-        >
-          Ajouter
-        </button>
       </div>
+      {error && <p className="text-red-400 text-xs mt-3">{error}</p>}
+      <button
+        className="mt-4 bg-gold-500 text-dark-900 py-2 px-6 text-sm font-semibold rounded-md hover:bg-gold-400 transition border-0 cursor-pointer"
+        onClick={addDriver}
+      >
+        Ajouter
+      </button>
     </div>
   );
 };

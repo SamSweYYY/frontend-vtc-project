@@ -3,157 +3,75 @@ import axios from "axios";
 import { Driver } from "../types";
 
 interface UpdateDriverProps {
-  driver: Driver; // Chauffeur à mettre à jour
-  onClose: () => void; // Fonction pour fermer la modal
-  onDriverUpdated: () => void; // Fonction callback pour rafraîchir la liste des chauffeurs après mise à jour
+  driver: Driver;
+  onClose: () => void;
+  onDriverUpdated: () => void;
 }
 
-const UpdateDriver: React.FC<UpdateDriverProps> = ({
-  driver,
-  onClose,
-  onDriverUpdated,
-}) => {
-  const [updatedDriver, setUpdatedDriver] = useState<Driver>(driver); // État local pour les champs du chauffeur
-  const [isLoading, setIsLoading] = useState(false); // Indicateur de chargement
+const UpdateDriver: React.FC<UpdateDriverProps> = ({ driver, onClose, onDriverUpdated }) => {
+  const [updatedDriver, setUpdatedDriver] = useState<Driver>(driver);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Gestion de la modification des champs du formulaire
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setUpdatedDriver((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Gestion du champ checkbox (disponible)
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { checked } = e.target;
-    setUpdatedDriver((prev) => ({ ...prev, disponible: checked }));
+    setUpdatedDriver((prev) => ({ ...prev, disponible: e.target.checked }));
   };
 
-  // Gestion de la soumission du formulaire
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
     axios
       .put(`http://localhost:3000/chauffeurs/${updatedDriver._id}`, updatedDriver)
-      .then(() => {
-        onDriverUpdated(); // Rafraîchir la liste des chauffeurs dans le composant parent
-        onClose(); // Fermer la modal
-      })
-      .catch((error) => {
-        console.error("Erreur lors de la mise à jour du chauffeur :", error);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+      .then(() => { onDriverUpdated(); onClose(); })
+      .catch((error) => console.error("Erreur mise à jour:", error))
+      .finally(() => setIsLoading(false));
   };
 
+  const inputClass = "w-full px-3 py-2.5 bg-dark-700 border border-dark-500/50 rounded-md text-white placeholder-slate-500 focus:border-gold-500 focus:ring-1 focus:ring-gold-500/30 transition text-sm";
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">
-          Mettre à jour le chauffeur
-        </h2>
-        <form onSubmit={handleFormSubmit} className="space-y-4">
-          {/* Champ Nom */}
+    <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50" onClick={onClose}>
+      <div className="bg-dark-800 border border-dark-500/30 rounded-lg p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-lg font-semibold text-white mb-5">Modifier le chauffeur</h2>
+        <form onSubmit={handleFormSubmit} className="space-y-3">
           <div>
-            <label className="block text-gray-700 font-medium mb-1">
-              Nom :
-            </label>
-            <input
-              type="text"
-              name="nom"
-              value={updatedDriver.nom}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <label className="block text-slate-400 text-xs font-medium mb-1.5">Nom</label>
+            <input type="text" name="nom" value={updatedDriver.nom} onChange={handleInputChange} className={inputClass} />
           </div>
-
-          {/* Champ Prénom */}
           <div>
-            <label className="block text-gray-700 font-medium mb-1">
-              Prénom :
-            </label>
-            <input
-              type="text"
-              name="prenom"
-              value={updatedDriver.prenom}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <label className="block text-slate-400 text-xs font-medium mb-1.5">Prénom</label>
+            <input type="text" name="prenom" value={updatedDriver.prenom} onChange={handleInputChange} className={inputClass} />
           </div>
-
-          {/* Champ Email */}
           <div>
-            <label className="block text-gray-700 font-medium mb-1">
-              Email :
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={updatedDriver.email}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <label className="block text-slate-400 text-xs font-medium mb-1.5">Email</label>
+            <input type="email" name="email" value={updatedDriver.email} onChange={handleInputChange} className={inputClass} />
           </div>
-
-          {/* Champ Téléphone */}
           <div>
-            <label className="block text-gray-700 font-medium mb-1">
-              Téléphone :
-            </label>
-            <input
-              type="text"
-              name="telephone"
-              value={updatedDriver.telephone}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <label className="block text-slate-400 text-xs font-medium mb-1.5">Téléphone</label>
+            <input type="text" name="telephone" value={updatedDriver.telephone} onChange={handleInputChange} className={inputClass} />
           </div>
-
-          {/* Champ Véhicule */}
           <div>
-            <label className="block text-gray-700 font-medium mb-1">
-              Véhicule :
-            </label>
-            <input
-              type="text"
-              name="vehicule"
-              value={updatedDriver.vehicule}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <label className="block text-slate-400 text-xs font-medium mb-1.5">Véhicule</label>
+            <input type="text" name="vehicule" value={updatedDriver.vehicule} onChange={handleInputChange} className={inputClass} />
           </div>
-
-          {/* Champ Disponible */}
-          <div className="flex items-center gap-2">
-            <label className="text-gray-700 font-medium">
-              Disponible :
-            </label>
-            <input
-              type="checkbox"
-              name="disponible"
-              checked={updatedDriver.disponible}
-              onChange={handleCheckboxChange}
-              className="w-6 h-6"
-            />
-          </div>
-
-          {/* Boutons */}
-          <div className="flex items-center justify-end gap-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400"
-            >
+          <label className="flex items-center gap-2.5 text-slate-400 text-sm py-1">
+            <input type="checkbox" name="disponible" checked={updatedDriver.disponible} onChange={handleCheckboxChange}
+              className="w-4 h-4 rounded accent-gold-500" />
+            Disponible
+          </label>
+          <div className="flex items-center justify-end gap-3 pt-3">
+            <button type="button" onClick={onClose}
+              className="px-4 py-2 bg-dark-600 text-slate-300 rounded-md text-sm hover:bg-dark-500 transition border border-dark-500/50 cursor-pointer">
               Annuler
             </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className={`px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:ring-4 focus:ring-blue-300 ${
+            <button type="submit" disabled={isLoading}
+              className={`px-4 py-2 bg-gold-500 text-dark-900 rounded-md text-sm font-semibold hover:bg-gold-400 transition border-0 cursor-pointer ${
                 isLoading ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-            >
+              }`}>
               {isLoading ? "Enregistrement..." : "Enregistrer"}
             </button>
           </div>

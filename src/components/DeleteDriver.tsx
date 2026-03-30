@@ -2,46 +2,38 @@ import React, { useState } from 'react';
 import axios from 'axios';
 
 interface DeleteDriverProps {
-    driverId: string; // ID du chauffeur à supprimer
-    onDriverDeleted: () => void; // Fonction callback pour rafraîchir la liste des chauffeurs après suppression
+    driverId: string;
+    onDriverDeleted: () => void;
 }
 
 const DeleteDriver: React.FC<DeleteDriverProps> = ({ driverId, onDriverDeleted }) => {
-    const [isLoading, setIsLoading] = useState(false); // État pour indiquer si la suppression est en cours
-    const [error, setError] = useState<string | null>(null); // État pour gérer les erreurs
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    // Fonction pour supprimer le chauffeur
     const deleteDriver = () => {
-        // Confirmation avant suppression
-        const confirmDelete = window.confirm('Êtes-vous sûr de vouloir supprimer ce chauffeur ?');
+        const confirmDelete = window.confirm('Supprimer ce chauffeur ?');
         if (!confirmDelete) return;
-
         setIsLoading(true);
-        setError(null); // Réinitialiser les erreurs
+        setError(null);
         axios.delete(`http://localhost:3000/chauffeurs/${driverId}`)
-            .then(() => {
-                console.log('Chauffeur supprimé avec succès');
-                onDriverDeleted(); // Appel de la fonction de rappel pour rafraîchir la liste des chauffeurs
-            })
+            .then(() => onDriverDeleted())
             .catch((error) => {
-                console.error("Erreur lors de la suppression du chauffeur", error);
-                setError("Une erreur est survenue lors de la suppression.");
+                console.error('Erreur suppression:', error);
+                setError('Erreur lors de la suppression.');
             })
-            .finally(() => {
-                setIsLoading(false); // Réinitialiser l'état de chargement
-            });
+            .finally(() => setIsLoading(false));
     };
 
     return (
         <div>
-            <button 
-                onClick={deleteDriver} 
-                className="delete-button" 
-                disabled={isLoading} // Désactive le bouton si suppression en cours
+            <button
+                onClick={deleteDriver}
+                className="px-3 py-1.5 rounded text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                disabled={isLoading}
             >
                 {isLoading ? 'Suppression...' : 'Supprimer'}
             </button>
-            {error && <p className="error-message">{error}</p>} {/* Affichage des erreurs */}
+            {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
         </div>
     );
 };
