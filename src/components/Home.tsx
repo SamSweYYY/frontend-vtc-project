@@ -47,7 +47,7 @@ function Home() {
     const user = userData ? JSON.parse(userData) : null;
 
     const fetchDrivers = () => {
-        axios.get('http://localhost:3000/chauffeurs')
+        axios.get('https://vtc-api-ho4o.onrender.com/chauffeurs')
             .then(response => setDrivers(response.data))
             .catch(error => console.error("Erreur:", error));
     };
@@ -55,7 +55,7 @@ function Home() {
     useEffect(() => {
         fetchDrivers();
         // Fetch weekly stats
-        axios.get('http://localhost:3000/courses/stats/weekly')
+        axios.get('https://vtc-api-ho4o.onrender.com/courses/stats/weekly')
             .then(r => setWeeklyStats(r.data))
             .catch(() => {});
         // Fetch weather (Paris default, free API)
@@ -75,7 +75,7 @@ function Home() {
             .catch(() => {});
         // Fetch client reservations
         if (user?._id && client) {
-            axios.get(`http://localhost:3000/reservations/client/${user._id}`)
+            axios.get(`https://vtc-api-ho4o.onrender.com/reservations/client/${user._id}`)
                 .then(r => setClientReservations(r.data))
                 .catch(() => {});
         }

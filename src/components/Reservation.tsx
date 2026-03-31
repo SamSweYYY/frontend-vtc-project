@@ -79,7 +79,7 @@ function Reservation() {
         setLoading(true);
         setError('');
         try {
-            await axios.post('http://localhost:3000/reservations', {
+            await axios.post('https://vtc-api-ho4o.onrender.com/reservations', {
                 clientId: user._id,
                 categorie: selectedCat,
                 depart: formData.depart,

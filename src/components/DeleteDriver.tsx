@@ -15,7 +15,7 @@ const DeleteDriver: React.FC<DeleteDriverProps> = ({ driverId, onDriverDeleted }
         if (!confirmDelete) return;
         setIsLoading(true);
         setError(null);
-        axios.delete(`http://localhost:3000/chauffeurs/${driverId}`)
+        axios.delete(`https://vtc-api-ho4o.onrender.com/chauffeurs/${driverId}`)
             .then(() => onDriverDeleted())
             .catch((error) => {
                 console.error('Erreur suppression:', error);

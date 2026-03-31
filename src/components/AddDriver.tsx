@@ -33,7 +33,7 @@ const AddDriver: React.FC<AddDriverProps> = ({ onDriverAdded }) => {
     }
     setError('');
     axios
-      .post('http://localhost:3000/chauffeurs', {
+      .post('https://vtc-api-ho4o.onrender.com/chauffeurs', {
         nom: driver.nom,
         prenom: driver.prenom,
         email: driver.email,

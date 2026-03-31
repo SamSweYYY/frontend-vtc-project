@@ -13,14 +13,14 @@ function MesReservations() {
 
     useEffect(() => {
         if (!user?._id) return;
-        axios.get(`http://localhost:3000/reservations/client/${user._id}`)
+        axios.get(`https://vtc-api-ho4o.onrender.com/reservations/client/${user._id}`)
             .then(r => { setReservations(r.data); setLoading(false); })
             .catch(() => setLoading(false));
     }, []);
 
     const handleCancel = async (id: string) => {
         try {
-            await axios.put(`http://localhost:3000/reservations/${id}`, { statut: 'annulee' });
+            await axios.put(`https://vtc-api-ho4o.onrender.com/reservations/${id}`, { statut: 'annulee' });
             setReservations(prev => prev.map(r => r._id === id ? { ...r, statut: 'annulee' } : r));
         } catch {
             // silent

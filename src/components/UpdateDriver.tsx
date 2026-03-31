@@ -25,7 +25,7 @@ const UpdateDriver: React.FC<UpdateDriverProps> = ({ driver, onClose, onDriverUp
     e.preventDefault();
     setIsLoading(true);
     axios
-      .put(`http://localhost:3000/chauffeurs/${updatedDriver._id}`, updatedDriver)
+      .put(`https://vtc-api-ho4o.onrender.com/chauffeurs/${updatedDriver._id}`, updatedDriver)
       .then(() => { onDriverUpdated(); onClose(); })
       .catch((error) => console.error("Erreur mise à jour:", error))
       .finally(() => setIsLoading(false));

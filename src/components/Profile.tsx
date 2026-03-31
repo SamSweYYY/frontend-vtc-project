@@ -62,7 +62,7 @@ const Profile: React.FC = () => {
   const updateMyPosition = () => {
     if (!position || !user?._id) return;
     setUpdating(true);
-    axios.put(`http://localhost:3000/chauffeurs/${user._id}`, {
+    axios.put(`https://vtc-api-ho4o.onrender.com/chauffeurs/${user._id}`, {
       latitude: position.lat,
       longitude: position.lng,
     })
