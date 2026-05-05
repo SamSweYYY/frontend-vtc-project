@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Driver } from '../types';
+import { apiUrl } from '../utils/api';
 
 interface AddDriverProps {
   onDriverAdded: () => void;
@@ -33,7 +34,7 @@ const AddDriver: React.FC<AddDriverProps> = ({ onDriverAdded }) => {
     }
     setError('');
     axios
-      .post('https://vtc-api-ho4o.onrender.com/chauffeurs', {
+      .post(apiUrl('/chauffeurs'), {
         nom: driver.nom,
         prenom: driver.prenom,
         email: driver.email,

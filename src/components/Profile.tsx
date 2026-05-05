@@ -1,29 +1,29 @@
-
-import React, { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import Header from './Header';
 import { useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import { isAdmin } from '../types';
+import FleetMap from './FleetMap';
+import { Driver, isAdmin } from '../types';
+import { apiUrl } from '../utils/api';
 
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-L.Icon.Default.mergeOptions({ iconRetinaUrl: markerIcon2x, iconUrl: markerIcon, shadowUrl: markerShadow });
-
-function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
-  const map = useMap();
-  useEffect(() => { map.setView([lat, lng], map.getZoom()); }, [lat, lng, map]);
-  return null;
+interface SessionUser {
+  _id: string;
+  nom?: string;
+  prenom?: string;
+  email?: string;
+  telephone?: string;
+  vehicule?: string;
+  categorie?: Driver['categorie'];
+  disponible?: boolean;
+  statut?: Driver['statut'];
+  role?: Driver['role'];
 }
 
-const Profile: React.FC = () => {
+const Profile = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
   const userData = localStorage.getItem('user');
-  const user = userData ? JSON.parse(userData) : null;
+  const user: SessionUser | null = userData ? JSON.parse(userData) : null;
 
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [geoError, setGeoError] = useState('');
@@ -33,41 +33,70 @@ const Profile: React.FC = () => {
   useEffect(() => {
     if (!token) {
       navigate('/Login');
-      return;
+      return undefined;
     }
 
-    if (navigator.geolocation) {
-      navigator.geolocation.watchPosition(
-        (pos) => {
-          const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          setPosition(coords);
-          setGeoError('');
-          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`)
-            .then(r => r.json())
-            .then(data => {
-              if (data.display_name) setAddress(data.display_name);
-            })
-            .catch(() => {});
-        },
-        (err) => {
-          setGeoError(`Erreur de géolocalisation: ${err.message}`);
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
-      );
-    } else {
-      setGeoError('La géolocalisation n\'est pas supportée par votre navigateur');
+    if (!navigator.geolocation) {
+      setGeoError("La géolocalisation n'est pas supportée par votre navigateur");
+      return undefined;
     }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setPosition(coords);
+        setGeoError('');
+
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`)
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.display_name) setAddress(data.display_name);
+          })
+          .catch(() => {});
+      },
+      (err) => {
+        setGeoError(`Erreur de géolocalisation: ${err.message}`);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
   }, [token, navigate]);
 
-  const updateMyPosition = () => {
-    if (!position || !user?._id) return;
-    setUpdating(true);
-    axios.put(`https://vtc-api-ho4o.onrender.com/chauffeurs/${user._id}`, {
+  const mapDrivers = useMemo<Driver[]>(() => {
+    if (!position || !user) return [];
+
+    return [{
+      _id: user._id,
+      nom: user.nom || '',
+      prenom: user.prenom || 'Moi',
+      email: user.email || '',
+      telephone: user.telephone || '',
+      vehicule: user.vehicule || 'VTC',
+      categorie: user.categorie,
+      disponible: user.disponible ?? true,
+      statut: user.statut || 'disponible',
       latitude: position.lat,
       longitude: position.lng,
-    })
-    .then(() => setUpdating(false))
-    .catch(() => setUpdating(false));
+      role: user.role,
+    }];
+  }, [position, user]);
+
+  const updateMyPosition = async () => {
+    if (!position || !user?._id) return;
+    setUpdating(true);
+
+    try {
+      await axios.put(apiUrl(`/chauffeurs/${user._id}`), {
+        latitude: position.lat,
+        longitude: position.lng,
+      });
+      setGeoError('');
+    } catch {
+      setGeoError("Impossible de mettre à jour votre position pour le moment.");
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const handleLogout = () => {
@@ -91,7 +120,6 @@ const Profile: React.FC = () => {
     <div className="min-h-screen bg-dark-800">
       <Header />
       <div className="max-w-3xl mx-auto px-4 py-10">
-        {/* Header section */}
         <div className="flex items-center gap-4 mb-8">
           <div className="w-14 h-14 bg-gold-500/10 border border-gold-500/20 rounded-full flex items-center justify-center">
             <span className="text-gold-500 text-lg font-bold">{user.prenom?.[0]}{user.nom?.[0]}</span>
@@ -105,7 +133,6 @@ const Profile: React.FC = () => {
           </div>
         </div>
 
-        {/* Info grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
           <div className="p-4 bg-dark-700 rounded-lg border border-dark-500/30">
             <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Email</p>
@@ -133,7 +160,6 @@ const Profile: React.FC = () => {
           </div>
         </div>
 
-        {/* Address */}
         {address && (
           <div className="mb-6 p-4 bg-dark-700 rounded-lg border border-gold-500/20">
             <p className="text-xs text-gold-500 uppercase tracking-wider mb-1">Adresse détectée</p>
@@ -147,21 +173,15 @@ const Profile: React.FC = () => {
           </div>
         )}
 
-        {/* Map */}
-        {position && (
-          <div className="mb-6 rounded-lg overflow-hidden border border-dark-500/30" style={{ height: '300px' }}>
-            <MapContainer center={[position.lat, position.lng]} zoom={15} style={{ height: '100%', width: '100%' }} scrollWheelZoom={true}>
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              />
-              <Marker position={[position.lat, position.lng]} />
-              <RecenterMap lat={position.lat} lng={position.lng} />
-            </MapContainer>
-          </div>
-        )}
+        <div className="mb-6">
+          <FleetMap
+            drivers={mapDrivers}
+            height={300}
+            title="Ma position"
+            emptyMessage="Position en cours de détection."
+          />
+        </div>
 
-        {/* Actions */}
         <div className="flex flex-wrap gap-3">
           <button
             onClick={updateMyPosition}

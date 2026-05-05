@@ -1,26 +1,93 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Header from './Header';
-import { Reservation, CATEGORIES, CATEGORY_COLORS, RESERVATION_STATUT_LABELS, RESERVATION_STATUT_COLORS, VehicleCategory } from '../types';
+import { Reservation, CATEGORIES, CATEGORY_COLORS, RESERVATION_STATUT_LABELS, RESERVATION_STATUT_COLORS, VehicleCategory, ReservationStatut } from '../types';
 import { Link } from 'react-router-dom';
+import { apiUrl } from '../utils/api';
+
+// Composant pour la barre de progression du suivi de réservation
+function ReservationProgressBar({ statut }: { statut: ReservationStatut }) {
+    // Mapper le statut à l'étape active (1-4)
+    const getActiveStep = (): number => {
+        switch (statut) {
+            case 'en_attente': return 1;
+            case 'confirmee': return 2;
+            case 'en_cours': return 3;
+            case 'terminee': return 4;
+            case 'annulee': return 0;
+            default: return 1;
+        }
+    };
+
+    // Étapes du suivi
+    const steps = [
+        { label: 'Demande envoyée', icon: '📝' },
+        { label: 'Chauffeur assigné', icon: '👤' },
+        { label: 'En route', icon: '🚗' },
+        { label: 'Terminée', icon: '✓' },
+    ];
+
+    const activeStep = getActiveStep();
+    if (activeStep === 0) return null; // Ne pas afficher pour annulées
+
+    return (
+        <div className="mt-3 pt-3 border-t border-dark-500/20">
+            <div className="flex items-center justify-between">
+                {steps.map((_, idx) => {
+                    const stepNum = idx + 1;
+                    const isActive = stepNum <= activeStep;
+
+                    return (
+                        <div key={idx} className="flex-1 flex items-center">
+                            {/* Cercle */}
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition ${
+                                isActive
+                                    ? 'bg-gold-500 text-dark-900'
+                                    : 'bg-dark-600 text-slate-500'
+                            }`}>
+                                {stepNum}
+                            </div>
+
+                            {/* Trait de connexion vers l'étape suivante */}
+                            {stepNum < steps.length && (
+                                <div className={`flex-1 h-0.5 mx-1 transition ${
+                                    isActive && stepNum < activeStep ? 'bg-gold-500' : 'bg-dark-600'
+                                }`} />
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+            {/* Labels des étapes */}
+            <div className="flex mt-1.5 text-[10px]">
+                {steps.map((step, idx) => (
+                    <div key={idx} className="flex-1">
+                        <span className={idx + 1 <= activeStep ? 'text-slate-300 font-medium' : 'text-slate-600'}>{step.label}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
 
 function MesReservations() {
     const userData = localStorage.getItem('user');
     const user = userData ? JSON.parse(userData) : null;
+    const userId = user?._id;
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'active' | 'past'>('all');
 
     useEffect(() => {
-        if (!user?._id) return;
-        axios.get(`https://vtc-api-ho4o.onrender.com/reservations/client/${user._id}`)
+        if (!userId) return;
+        axios.get(apiUrl(`/reservations/client/${userId}`))
             .then(r => { setReservations(r.data); setLoading(false); })
             .catch(() => setLoading(false));
-    }, []);
+    }, [userId]);
 
     const handleCancel = async (id: string) => {
         try {
-            await axios.put(`https://vtc-api-ho4o.onrender.com/reservations/${id}`, { statut: 'annulee' });
+            await axios.put(apiUrl(`/reservations/${id}`), { statut: 'annulee' });
             setReservations(prev => prev.map(r => r._id === id ? { ...r, statut: 'annulee' } : r));
         } catch {
             // silent
@@ -123,6 +190,10 @@ function MesReservations() {
                                                     Chauffeur : <span className="text-slate-300">{chauffeur.prenom} {chauffeur.nom}</span>
                                                     {chauffeur.vehicule && <span className="text-slate-600"> — {chauffeur.vehicule}</span>}
                                                 </p>
+                                            )}
+                                            {/* Barre de progression pour en_attente, confirmee, en_cours, terminee */}
+                                            {['en_attente', 'confirmee', 'en_cours', 'terminee'].includes(res.statut) && (
+                                                <ReservationProgressBar statut={res.statut} />
                                             )}
                                         </div>
                                     </div>

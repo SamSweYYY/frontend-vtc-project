@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { Driver } from "../types";
+import { apiUrl } from "../utils/api";
 
 interface UpdateDriverProps {
   driver: Driver;
@@ -25,7 +26,7 @@ const UpdateDriver: React.FC<UpdateDriverProps> = ({ driver, onClose, onDriverUp
     e.preventDefault();
     setIsLoading(true);
     axios
-      .put(`https://vtc-api-ho4o.onrender.com/chauffeurs/${updatedDriver._id}`, updatedDriver)
+      .put(apiUrl(`/chauffeurs/${updatedDriver._id}`), updatedDriver)
       .then(() => { onDriverUpdated(); onClose(); })
       .catch((error) => console.error("Erreur mise à jour:", error))
       .finally(() => setIsLoading(false));

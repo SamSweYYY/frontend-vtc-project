@@ -6,6 +6,7 @@ import SignUp from './components/SignUp';
 import Profile from './components/Profile';
 import Reservation from './components/Reservation';
 import MesReservations from './components/MesReservations';
+import TestUsers from './components/TestUsers';
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -20,6 +21,7 @@ function App() {
                 <Route path="/profile" element={<Profile/>} />
                 <Route path="/reserver" element={<Reservation />} />
                 <Route path="/mes-reservations" element={<MesReservations />} />
+                <Route path="/test-users" element={<TestUsers />} />
             </Routes>
         </Router>
     )

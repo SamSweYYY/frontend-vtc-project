@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import Header from './Header';
 import { Link, useNavigate } from 'react-router-dom';
+import { apiUrl } from '../utils/api';
 
 const LoginForm: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -28,7 +29,7 @@ const LoginForm: React.FC = () => {
         if (!validateForm()) return;
         setLoading(true);
         try {
-            const response = await axios.post('https://vtc-api-ho4o.onrender.com/Login', { email, password });
+            const response = await axios.post(apiUrl('/Login'), { email, password });
             const { token, chauffeur } = response.data;
             localStorage.setItem('token', token || 'session-active');
             if (chauffeur) {
@@ -46,12 +47,13 @@ const LoginForm: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-dark-800">
+        <div className="min-h-screen bg-dark-900">
             <Header />
-            <div className="flex items-center justify-center py-20 px-4">
-                <div className="w-full max-w-sm">
+            <div className="flex items-center justify-center min-h-[calc(100vh-72px)] py-12 px-4">
+                <div className="w-full max-w-md bg-white/[0.045] border border-white/10 rounded-xl p-6 sm:p-8 shadow-[0_24px_80px_rgba(0,0,0,0.26)]">
                     <div className="mb-8">
-                        <h2 className="text-2xl font-semibold text-white">Connexion</h2>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold-400 mb-3">Espace sécurisé</p>
+                        <h2 className="text-3xl font-semibold text-white">Connexion</h2>
                         <p className="text-slate-400 text-sm mt-1">Accédez à votre espace VTC Manager</p>
                     </div>
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -78,12 +80,12 @@ const LoginForm: React.FC = () => {
                             />
                         </div>
                         {error && (
-                            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-md">{error}</div>
+                            <div className="bg-red-500/10 border border-red-500/20 text-red-300 text-sm p-3 rounded-lg">{error}</div>
                         )}
                         <button
                             type="submit"
                             disabled={loading}
-                            className={`w-full bg-gold-500 text-dark-900 py-2.5 px-4 rounded-md text-sm font-semibold hover:bg-gold-400 transition border-0 cursor-pointer ${
+                            className={`w-full bg-white text-dark-900 py-3 px-4 rounded-full text-sm font-semibold hover:bg-gold-400 transition border-0 cursor-pointer ${
                                 loading ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                         >

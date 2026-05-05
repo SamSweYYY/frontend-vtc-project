@@ -3,6 +3,7 @@ import axios from 'axios';
 import Header from './Header';
 import { useNavigate } from 'react-router-dom';
 import { CATEGORIES, CATEGORY_COLORS, VehicleCategory, CategoryInfo } from '../types';
+import { apiUrl } from '../utils/api';
 
 const inputClass = "w-full px-3 py-2.5 bg-dark-700 border border-dark-500/50 rounded-md text-white placeholder-slate-500 focus:border-gold-500 focus:ring-1 focus:ring-gold-500/30 transition text-sm";
 
@@ -39,8 +40,11 @@ function Reservation() {
         note: '',
     });
     const [estimatedPrice, setEstimatedPrice] = useState<number | null>(null);
+    const [estimatedDistance, setEstimatedDistance] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
+    const [priceLoading, setPriceLoading] = useState(false);
     const [error, setError] = useState('');
+    const [priceError, setPriceError] = useState('');
     const [success, setSuccess] = useState(false);
 
     if (!user || user.role !== 'client') {
@@ -60,14 +64,74 @@ function Reservation() {
     const handleSelectCategory = (cat: CategoryInfo) => {
         setSelectedCat(cat.key);
         setStep('form');
+        setEstimatedPrice(null);
+        setEstimatedDistance(null);
+        setPriceError('');
     };
 
-    const estimatePrice = () => {
-        if (!selectedCat) return;
-        const cat = CATEGORIES.find(c => c.key === selectedCat)!;
-        // Estimate based on a rough distance (user sees base price + per-km)
-        const estimated = cat.prixBase + (cat.prixKm * 15); // ~15km average
-        setEstimatedPrice(Math.round(estimated));
+    const estimatePrice = async () => {
+        if (!selectedCat || !formData.depart || !formData.arrivee) {
+            setPriceError('Veuillez remplir les adresses de départ et arrivée');
+            return;
+        }
+
+        setPriceLoading(true);
+        setPriceError('');
+        setEstimatedPrice(null);
+        setEstimatedDistance(null);
+
+        try {
+            // Étape 1 : Géocoder l'adresse de départ via Nominatim
+            const departRes = await fetch(
+                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(formData.depart)}&format=json&limit=1`
+            );
+            const departData = await departRes.json();
+            if (!departData || departData.length === 0) {
+                setPriceError('Adresse de départ non trouvée. Essayez avec une adresse plus précise.');
+                setPriceLoading(false);
+                return;
+            }
+            const depLat = parseFloat(departData[0].lat);
+            const depLon = parseFloat(departData[0].lon);
+
+            // Étape 2 : Géocoder l'adresse d'arrivée via Nominatim
+            const arriveeRes = await fetch(
+                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(formData.arrivee)}&format=json&limit=1`
+            );
+            const arriveeData = await arriveeRes.json();
+            if (!arriveeData || arriveeData.length === 0) {
+                setPriceError('Adresse d\'arrivée non trouvée. Essayez avec une adresse plus précise.');
+                setPriceLoading(false);
+                return;
+            }
+            const arrLat = parseFloat(arriveeData[0].lat);
+            const arrLon = parseFloat(arriveeData[0].lon);
+
+            // Étape 3 : Appeler OSRM pour obtenir la distance réelle en mètres
+            const osrmRes = await fetch(
+                `https://router.project-osrm.org/route/v1/driving/${depLon},${depLat};${arrLon},${arrLat}?overview=false`
+            );
+            const osrmData = await osrmRes.json();
+            if (!osrmData.routes || osrmData.routes.length === 0) {
+                setPriceError('Impossible de calculer la route. Vérifiez les adresses.');
+                setPriceLoading(false);
+                return;
+            }
+
+            // Étape 4 : Convertir la distance en km et calculer le prix réel
+            const distanceMeters = osrmData.routes[0].distance;
+            const distanceKm = distanceMeters / 1000;
+            const cat = CATEGORIES.find(c => c.key === selectedCat)!;
+            const finalPrice = Math.round(cat.prixBase + (distanceKm * cat.prixKm));
+
+            setEstimatedDistance(Math.round(distanceKm * 10) / 10); // Arrondir à 1 décimale
+            setEstimatedPrice(finalPrice);
+            setPriceError('');
+        } catch {
+            setPriceError('Erreur lors du calcul. Vérifiez les adresses et réessayez.');
+        } finally {
+            setPriceLoading(false);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -79,7 +143,7 @@ function Reservation() {
         setLoading(true);
         setError('');
         try {
-            await axios.post('https://vtc-api-ho4o.onrender.com/reservations', {
+            await axios.post(apiUrl('/reservations'), {
                 clientId: user._id,
                 categorie: selectedCat,
                 depart: formData.depart,
@@ -88,6 +152,8 @@ function Reservation() {
                 passagers: formData.passagers,
                 note: formData.note || undefined,
             });
+            // Enregistrer qu'une réservation active existe
+            localStorage.setItem('hasActiveReservation', 'true');
             setSuccess(true);
             setStep('confirm');
         } catch {
@@ -138,19 +204,31 @@ function Reservation() {
                                 <button
                                     key={cat.key}
                                     onClick={() => handleSelectCategory(cat)}
-                                    className={`text-left p-6 rounded-xl border-2 transition-all bg-dark-700 hover:bg-dark-600 cursor-pointer group ${
+                                    className={`text-left p-6 rounded-xl border-2 transition-all bg-dark-700 hover:bg-dark-600 hover:scale-105 hover:shadow-lg cursor-pointer group relative ${
                                         selectedCat === cat.key
                                             ? 'border-gold-500 bg-gold-500/5'
                                             : 'border-dark-500/30 hover:border-dark-400/50'
                                     }`}
                                 >
+                                    {/* Badge "Recommandé" pour confort */}
+                                    {cat.key === 'confort' && (
+                                        <div className="absolute -top-2 -right-2 bg-gold-500 text-dark-900 text-[10px] font-bold px-2.5 py-1 rounded-full">
+                                            Recommandé
+                                        </div>
+                                    )}
                                     <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${CATEGORY_COLORS[cat.key]}`}>
                                         <CategoryIcon type={cat.icon} className="w-6 h-6" />
                                     </div>
                                     <h3 className="text-lg font-semibold text-white mb-1">{cat.label}</h3>
                                     <p className="text-slate-400 text-sm mb-3">{cat.description}</p>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-xs text-slate-500">{cat.passengers}</span>
+                                        {/* Icône passager + nombre */}
+                                        <div className="flex items-center gap-1">
+                                            <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 12H9m6 0H9m6 0a4 4 0 11-8 0 4 4 0 018 0zm-2 8v2h-4v-2m-4-8a3 3 0 106 0 3 3 0 00-6 0z" />
+                                            </svg>
+                                            <span className="text-xs text-slate-500">{cat.passengers}</span>
+                                        </div>
                                         <div className="text-right">
                                             <p className="text-gold-400 font-bold text-lg">{cat.prixBase}€</p>
                                             <p className="text-[11px] text-slate-500">+ {cat.prixKm}€/km</p>
@@ -240,17 +318,31 @@ function Reservation() {
                             </div>
 
                             {/* Price estimate */}
-                            {!estimatedPrice && (
+                            {!estimatedPrice && !priceLoading && (
                                 <button type="button" onClick={estimatePrice}
                                     className="w-full py-2 text-sm text-gold-400 hover:text-gold-300 bg-transparent border border-gold-500/20 rounded-md cursor-pointer transition">
                                     Estimer le prix
                                 </button>
                             )}
-                            {estimatedPrice && (
+                            {priceLoading && (
                                 <div className="bg-gold-500/5 border border-gold-500/20 rounded-lg p-4 text-center">
-                                    <p className="text-xs text-slate-400 mb-1">Prix estimé (~15 km)</p>
-                                    <p className="text-2xl font-bold text-gold-400">{estimatedPrice}€</p>
-                                    <p className="text-[11px] text-slate-500 mt-1">Le prix final dépendra de la distance réelle</p>
+                                    <p className="text-sm text-gold-400 font-medium">Calcul en cours...</p>
+                                </div>
+                            )}
+                            {priceError && (
+                                <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-md">{priceError}</div>
+                            )}
+                            {estimatedPrice && (
+                                <div className="bg-gold-500/5 border border-gold-500/20 rounded-lg p-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-xs text-slate-400">Distance</p>
+                                        <p className="text-sm font-semibold text-gold-400">{estimatedDistance} km</p>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-xs text-slate-400">Prix estimé</p>
+                                        <p className="text-2xl font-bold text-gold-400">{estimatedPrice}€</p>
+                                    </div>
+                                    <p className="text-[11px] text-slate-600 mt-2 text-center">Le prix final dépendra des conditions réelles</p>
                                 </div>
                             )}
 
@@ -281,7 +373,7 @@ function Reservation() {
                                 className="px-5 py-2.5 bg-gold-500 text-dark-900 rounded-md text-sm font-semibold hover:bg-gold-400 transition border-0 cursor-pointer">
                                 Voir mes réservations
                             </button>
-                            <button onClick={() => { setStep('choose'); setSelectedCat(null); setSuccess(false); setEstimatedPrice(null); setFormData({ depart: '', arrivee: '', dateCourse: '', passagers: 1, note: '' }); }}
+                            <button onClick={() => { setStep('choose'); setSelectedCat(null); setSuccess(false); setEstimatedPrice(null); setEstimatedDistance(null); setPriceError(''); setFormData({ depart: '', arrivee: '', dateCourse: '', passagers: 1, note: '' }); }}
                                 className="px-5 py-2.5 bg-dark-600 text-slate-300 rounded-md text-sm font-medium hover:bg-dark-500 transition border border-dark-500/50 cursor-pointer">
                                 Nouvelle réservation
                             </button>
